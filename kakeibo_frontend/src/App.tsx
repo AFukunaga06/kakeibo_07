@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { LoginForm } from './components/LoginForm'
 import { ExpenseList } from './components/ExpenseList'
 import { ExpenseForm } from './components/ExpenseForm'
+import { CalendarView } from './components/CalendarView'
 import { DataExport } from './components/DataExport'
 import { DataImport } from './components/DataImport'
 import { authService } from './services/authService'
@@ -13,11 +14,13 @@ interface User {
 }
 
 type Page = 'home' | 'export' | 'import'
+type View = 'list' | 'calendar'
 
 function App() {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState<Page>('home')
+  const [currentView, setCurrentView] = useState<View>('list')
 
   useEffect(() => {
     const path = window.location.pathname
@@ -84,7 +87,31 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">家計簿アプリ</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold text-gray-900">家計簿</h1>
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setCurrentView('list')}
+                className={`px-4 py-2 text-sm rounded-md transition-colors ${
+                  currentView === 'list'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                リスト
+              </button>
+              <button
+                onClick={() => setCurrentView('calendar')}
+                className={`px-4 py-2 text-sm rounded-md transition-colors ${
+                  currentView === 'calendar'
+                    ? 'bg-black text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                📅 カレンダー
+              </button>
+            </div>
+          </div>
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigateTo('export')}
@@ -112,16 +139,20 @@ function App() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div>
-            <ExpenseList />
-          </div>
-          {!user.is_readonly && (
+        {currentView === 'calendar' ? (
+          <CalendarView />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
-              <ExpenseForm />
+              <ExpenseList />
             </div>
-          )}
-        </div>
+            {!user.is_readonly && (
+              <div>
+                <ExpenseForm />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
