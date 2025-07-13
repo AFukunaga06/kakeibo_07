@@ -98,3 +98,81 @@ async def delete_expense(expense_id: int, current_user: database.User = Depends(
     db.delete(db_expense)
     db.commit()
     return {"message": "Expense deleted successfully"}
+
+@app.get("/api/monthly-budgets", response_model=List[schemas.MonthlyBudget])
+async def get_monthly_budgets(current_user: database.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+    budgets = db.query(database.MonthlyBudget).filter(database.MonthlyBudget.owner_id == current_user.id).all()
+    return budgets
+
+@app.post("/api/monthly-budgets", response_model=schemas.MonthlyBudget)
+async def create_monthly_budget(budget: schemas.MonthlyBudgetCreate, current_user: database.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+    if current_user.is_readonly:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot create budgets")
+    
+    existing_budget = db.query(database.MonthlyBudget).filter(
+        database.MonthlyBudget.year == budget.year,
+        database.MonthlyBudget.month == budget.month,
+        database.MonthlyBudget.owner_id == current_user.id
+    ).first()
+    
+    if existing_budget:
+        existing_budget.budget_amount = budget.budget_amount
+        db.commit()
+        db.refresh(existing_budget)
+        return existing_budget
+    
+    db_budget = database.MonthlyBudget(**budget.dict(), owner_id=current_user.id)
+    db.add(db_budget)
+    db.commit()
+    db.refresh(db_budget)
+    return db_budget
+
+@app.post("/api/import-data")
+async def import_data(
+    import_data: schemas.DataImport, 
+    current_user: database.User = Depends(auth.get_current_user), 
+    db: Session = Depends(database.get_db)
+):
+    if current_user.is_readonly:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot import data")
+    
+    try:
+        imported_expenses = 0
+        imported_budgets = 0
+        
+        for expense_data in import_data.expenses:
+            db_expense = database.Expense(**expense_data.dict(), owner_id=current_user.id)
+            db.add(db_expense)
+            imported_expenses += 1
+        
+        for budget_data in import_data.budgets:
+            existing_budget = db.query(database.MonthlyBudget).filter(
+                database.MonthlyBudget.year == budget_data.year,
+                database.MonthlyBudget.month == budget_data.month,
+                database.MonthlyBudget.owner_id == current_user.id
+            ).first()
+            
+            if existing_budget:
+                existing_budget.budget_amount = budget_data.budget_amount
+            else:
+                db_budget = database.MonthlyBudget(**budget_data.dict(), owner_id=current_user.id)
+                db.add(db_budget)
+                imported_budgets += 1
+        
+        db.commit()
+        return {"message": f"Successfully imported {imported_expenses} expenses and {imported_budgets} budgets"}
+    
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Import failed: {str(e)}")
+
+@app.delete("/api/clear-data")
+async def clear_all_data(current_user: database.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+    if current_user.is_readonly:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot clear data")
+    
+    deleted_expenses = db.query(database.Expense).filter(database.Expense.owner_id == current_user.id).delete()
+    deleted_budgets = db.query(database.MonthlyBudget).filter(database.MonthlyBudget.owner_id == current_user.id).delete()
+    
+    db.commit()
+    return {"message": f"Cleared {deleted_expenses} expenses and {deleted_budgets} budgets"}

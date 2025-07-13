@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 class ExpenseBase(BaseModel):
     amount: float
@@ -43,3 +43,23 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+class MonthlyBudgetBase(BaseModel):
+    year: int
+    month: int
+    budget_amount: float
+
+class MonthlyBudgetCreate(MonthlyBudgetBase):
+    pass
+
+class MonthlyBudget(MonthlyBudgetBase):
+    id: int
+    owner_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class DataImport(BaseModel):
+    expenses: List[ExpenseCreate]
+    budgets: List[MonthlyBudgetCreate]

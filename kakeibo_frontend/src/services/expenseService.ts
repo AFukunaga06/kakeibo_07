@@ -75,6 +75,61 @@ class ExpenseService {
       throw new Error('支出の削除に失敗しました')
     }
   }
+
+  async getMonthlyBudgets() {
+    const response = await fetch(`${API_URL}/api/monthly-budgets`, {
+      headers: this.getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error('月間予算の取得に失敗しました')
+    }
+
+    return response.json()
+  }
+
+  async createMonthlyBudget(budget: any) {
+    const response = await fetch(`${API_URL}/api/monthly-budgets`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(budget),
+    })
+
+    if (!response.ok) {
+      throw new Error('月間予算の作成に失敗しました')
+    }
+
+    return response.json()
+  }
+
+  async importData(data: any) {
+    const response = await fetch(`${API_URL}/api/import-data`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || 'データのインポートに失敗しました')
+    }
+
+    return response.json()
+  }
+
+  async clearData() {
+    const response = await fetch(`${API_URL}/api/clear-data`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || 'データの削除に失敗しました')
+    }
+
+    return response.json()
+  }
 }
 
 export const expenseService = new ExpenseService()

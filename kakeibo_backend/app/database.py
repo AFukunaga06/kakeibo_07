@@ -22,6 +22,7 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     expenses = relationship("Expense", back_populates="owner")
+    monthly_budgets = relationship("MonthlyBudget", back_populates="owner")
 
 class Expense(Base):
     __tablename__ = "expenses"
@@ -34,6 +35,18 @@ class Expense(Base):
     owner_id = Column(Integer, ForeignKey("users.id"))
 
     owner = relationship("User", back_populates="expenses")
+
+class MonthlyBudget(Base):
+    __tablename__ = "monthly_budgets"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    year = Column(Integer, nullable=False)
+    month = Column(Integer, nullable=False)
+    budget_amount = Column(Float, nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    owner = relationship("User", back_populates="monthly_budgets")
 
 def get_db():
     db = SessionLocal()
