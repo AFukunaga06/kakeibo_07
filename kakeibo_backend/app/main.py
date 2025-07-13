@@ -101,7 +101,7 @@ async def delete_expense(expense_id: int, current_user: database.User = Depends(
 
 @app.get("/api/monthly-budgets", response_model=List[schemas.MonthlyBudget])
 async def get_monthly_budgets(current_user: database.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
-    budgets = db.query(database.MonthlyBudget).filter(database.MonthlyBudget.owner_id == current_user.id).all()
+    budgets = db.query(database.MonthlyBudget).all()
     return budgets
 
 @app.post("/api/monthly-budgets", response_model=schemas.MonthlyBudget)
