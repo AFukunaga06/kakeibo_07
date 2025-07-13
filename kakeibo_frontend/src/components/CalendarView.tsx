@@ -267,18 +267,6 @@ export function CalendarView() {
         </div>
       </div>
 
-      <div className="bg-blue-50 rounded-lg p-4">
-        <div className="flex items-center gap-2 text-blue-700">
-          <span className="text-sm">📅</span>
-          <span className="text-sm font-medium">
-            {formatMonthYear(new Date())} の支出明細
-          </span>
-          <span className="ml-auto text-sm font-bold">
-            合計: {formatAmount(getTodayTotal())}
-          </span>
-          <span className="text-xs text-green-600">合格</span>
-        </div>
-      </div>
     </div>
   )
 }
