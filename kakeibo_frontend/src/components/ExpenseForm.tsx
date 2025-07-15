@@ -57,7 +57,7 @@ export function ExpenseForm() {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'amount' ? parseFloat(value) || 0 : value
+      [name]: name === 'amount' ? (isNaN(parseFloat(value)) ? 0 : parseFloat(value)) : value
     }))
   }
 
@@ -86,7 +86,7 @@ export function ExpenseForm() {
             type="number"
             id="amount"
             name="amount"
-            value={formData.amount || ''}
+            value={formData.amount === null || formData.amount === undefined ? '' : formData.amount}
             onChange={handleChange}
             min="0"
             step="1"
