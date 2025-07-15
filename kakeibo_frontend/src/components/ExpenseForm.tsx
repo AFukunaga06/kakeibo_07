@@ -20,7 +20,7 @@ export function ExpenseForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.amount || formData.amount <= 0) {
+    if (formData.amount === null || formData.amount === undefined || formData.amount < 0) {
       setError('金額を正しく入力してください')
       return
     }
