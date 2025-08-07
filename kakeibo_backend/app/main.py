@@ -7,10 +7,15 @@ from typing import List
 import psycopg
 
 from . import database, schemas, auth
+from .init_db import init_database
 
 app = FastAPI()
 
 database.Base.metadata.create_all(bind=database.engine)
+
+@app.on_event("startup")
+async def startup_event():
+    init_database()
 
 # Disable CORS. Do not remove this for full-stack development.
 app.add_middleware(

@@ -24,10 +24,14 @@ def create_default_users(db: Session):
     
     db.commit()
 
-if __name__ == "__main__":
+def init_database():
+    database.Base.metadata.create_all(bind=database.engine)
     db = database.SessionLocal()
     try:
         create_default_users(db)
         print("Default users created successfully")
     finally:
         db.close()
+
+if __name__ == "__main__":
+    init_database()

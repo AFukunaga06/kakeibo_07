@@ -41,7 +41,9 @@ export function ExpenseList() {
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('ja-JP', {
       style: 'currency',
-      currency: 'JPY'
+      currency: 'JPY',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(amount)
   }
 
