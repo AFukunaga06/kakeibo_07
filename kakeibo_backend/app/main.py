@@ -1,6 +1,7 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from typing import List
@@ -60,7 +61,17 @@ async def login(username: str, password: str, db: Session = Depends(database.get
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/api/expenses", response_model=List[schemas.Expense])
-async def get_expenses(current_user: database.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+async def get_expenses(request: Request, db: Session = Depends(database.get_db)):
+    auth_header = request.headers.get("authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        try:
+            token = auth_header.split(" ")[1]
+            current_user = auth.get_current_user(token, db)
+            expenses = db.query(database.Expense).all()
+            return expenses
+        except:
+            pass
+    
     expenses = db.query(database.Expense).all()
     return expenses
 
@@ -105,7 +116,17 @@ async def delete_expense(expense_id: int, current_user: database.User = Depends(
     return {"message": "Expense deleted successfully"}
 
 @app.get("/api/monthly-budgets", response_model=List[schemas.MonthlyBudget])
-async def get_monthly_budgets(current_user: database.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+async def get_monthly_budgets(request: Request, db: Session = Depends(database.get_db)):
+    auth_header = request.headers.get("authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        try:
+            token = auth_header.split(" ")[1]
+            current_user = auth.get_current_user(token, db)
+            budgets = db.query(database.MonthlyBudget).all()
+            return budgets
+        except:
+            pass
+    
     budgets = db.query(database.MonthlyBudget).all()
     return budgets
 
@@ -181,3 +202,92 @@ async def clear_all_data(current_user: database.User = Depends(auth.get_current_
     
     db.commit()
     return {"message": f"Cleared {deleted_expenses} expenses and {deleted_budgets} budgets"}
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_interface():
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>家計簿管理者ページ</title>
+        <style>
+            body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+            .login-form { background: #f5f5f5; padding: 30px; border-radius: 8px; }
+            .form-group { margin-bottom: 20px; }
+            label { display: block; margin-bottom: 5px; font-weight: bold; }
+            input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+            button { background: #007bff; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; }
+            button:hover { background: #0056b3; }
+            .error { color: red; margin-top: 10px; }
+            .hidden { display: none; }
+            .admin-panel { background: #e8f5e8; padding: 30px; border-radius: 8px; }
+        </style>
+    </head>
+    <body>
+        <h1>家計簿管理者ページ</h1>
+        
+        <div id="loginForm" class="login-form">
+            <h2>管理者ログイン</h2>
+            <div class="form-group">
+                <label for="password">パスワード:</label>
+                <input type="password" id="password" placeholder="管理者パスワードを入力">
+            </div>
+            <button onclick="login()">ログイン</button>
+            <div id="error" class="error"></div>
+        </div>
+
+        <div id="adminPanel" class="admin-panel hidden">
+            <h2>管理者機能</h2>
+            <p>編集機能付きの家計簿アプリにアクセスできます。</p>
+            <button onclick="window.open('/', '_blank')">家計簿アプリを開く（編集モード）</button>
+            <br><br>
+            <button onclick="logout()">ログアウト</button>
+        </div>
+
+        <script>
+            function login() {
+                const password = document.getElementById('password').value;
+                const errorDiv = document.getElementById('error');
+                
+                if (password === 'r246') {
+                    fetch('/login?username=readwrite&password=' + encodeURIComponent(password), {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.access_token) {
+                            localStorage.setItem('admin_token', data.access_token);
+                            document.getElementById('loginForm').classList.add('hidden');
+                            document.getElementById('adminPanel').classList.remove('hidden');
+                        } else {
+                            errorDiv.textContent = 'ログインに失敗しました';
+                        }
+                    })
+                    .catch(error => {
+                        errorDiv.textContent = 'ログインに失敗しました';
+                    });
+                } else {
+                    errorDiv.textContent = 'パスワードが正しくありません';
+                }
+            }
+            
+            function logout() {
+                localStorage.removeItem('admin_token');
+                document.getElementById('loginForm').classList.remove('hidden');
+                document.getElementById('adminPanel').classList.add('hidden');
+                document.getElementById('password').value = '';
+                document.getElementById('error').textContent = '';
+            }
+            
+            // Check if already logged in
+            if (localStorage.getItem('admin_token')) {
+                document.getElementById('loginForm').classList.add('hidden');
+                document.getElementById('adminPanel').classList.remove('hidden');
+            }
+        </script>
+    </body>
+    </html>
+    """
+    return html_content

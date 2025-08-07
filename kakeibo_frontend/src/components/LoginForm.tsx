@@ -6,25 +6,24 @@ interface LoginFormProps {
 
 export function LoginForm({ onLogin }: LoginFormProps) {
   const [readonlyPassword, setReadonlyPassword] = useState('')
-  const [readwritePassword, setReadwritePassword] = useState('')
-  const [isLoading, setIsLoading] = useState<'readonly' | 'readwrite' | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleLogin = async (username: string, password: string, type: 'readonly' | 'readwrite') => {
-    if (!password.trim()) {
-      setError('パスワードを入力してください')
+  const handleLogin = async () => {
+    if (readonlyPassword !== '0317') {
+      setError('パスワードが正しくありません')
       return
     }
 
-    setIsLoading(type)
+    setIsLoading(true)
     setError('')
 
     try {
-      await onLogin(username, password)
+      await onLogin('readonly', readonlyPassword)
     } catch (error) {
       setError('ログインに失敗しました。パスワードを確認してください。')
     } finally {
-      setIsLoading(null)
+      setIsLoading(false)
     }
   }
 
@@ -46,48 +45,35 @@ export function LoginForm({ onLogin }: LoginFormProps) {
           </div>
         )}
 
-        <div className="space-y-6">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-3">閲覧のみ</h3>
-            <div className="space-y-3">
-              <input
-                type="password"
-                placeholder="パスワードを入力"
-                value={readonlyPassword}
-                onChange={(e) => setReadonlyPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onKeyPress={(e) => e.key === 'Enter' && handleLogin('readonly', readonlyPassword, 'readonly')}
-              />
-              <button
-                onClick={() => handleLogin('readonly', readonlyPassword, 'readonly')}
-                disabled={isLoading === 'readonly'}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isLoading === 'readonly' ? '処理中...' : 'ログイン'}
-              </button>
-            </div>
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <h3 className="text-lg font-medium text-gray-900 mb-3">閲覧のみ</h3>
+          <div className="space-y-3">
+            <input
+              type="password"
+              placeholder="パスワードを入力"
+              value={readonlyPassword}
+              onChange={(e) => setReadonlyPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+            />
+            <button
+              onClick={handleLogin}
+              disabled={isLoading}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isLoading ? '処理中...' : 'ログイン'}
+            </button>
           </div>
+        </div>
 
-          <div className="bg-green-50 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-3">閲覧編集可能</h3>
-            <div className="space-y-3">
-              <input
-                type="password"
-                placeholder="パスワードを入力"
-                value={readwritePassword}
-                onChange={(e) => setReadwritePassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                onKeyPress={(e) => e.key === 'Enter' && handleLogin('readwrite', readwritePassword, 'readwrite')}
-              />
-              <button
-                onClick={() => handleLogin('readwrite', readwritePassword, 'readwrite')}
-                disabled={isLoading === 'readwrite'}
-                className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isLoading === 'readwrite' ? '処理中...' : 'ログイン'}
-              </button>
-            </div>
-          </div>
+        <div className="mt-6 p-4 bg-gray-50 rounded-lg text-center">
+          <p className="text-sm text-gray-600 mb-2">編集機能をご利用の場合は</p>
+          <a 
+            href="/admin" 
+            className="text-blue-600 hover:text-blue-800 font-medium"
+          >
+            管理者ページへ
+          </a>
         </div>
       </div>
     </div>

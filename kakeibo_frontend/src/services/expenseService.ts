@@ -17,8 +17,13 @@ export interface ExpenseCreate {
 }
 
 class ExpenseService {
-  private getAuthHeaders() {
+  private getAuthHeaders(): HeadersInit {
     const token = localStorage.getItem('token')
+    if (token === 'readonly-token') {
+      return {
+        'Content-Type': 'application/json',
+      }
+    }
     return {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',

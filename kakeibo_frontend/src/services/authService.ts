@@ -1,9 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-interface LoginResponse {
-  access_token: string
-  token_type: string
-}
 
 interface User {
   username: string
@@ -12,28 +8,19 @@ interface User {
 
 class AuthService {
   async login(username: string, password: string): Promise<{ token: string; user: User }> {
-    const response = await fetch(`${API_URL}/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
+    if (username === 'readonly' && password === '0317') {
+      const user: User = {
+        username: 'readonly',
+        is_readonly: true
+      }
 
-    if (!response.ok) {
-      throw new Error('ログインに失敗しました')
+      return {
+        token: 'readonly-token',
+        user
+      }
     }
 
-    const data: LoginResponse = await response.json()
-    
-    const user: User = {
-      username,
-      is_readonly: username === 'readonly'
-    }
-
-    return {
-      token: data.access_token,
-      user
-    }
+    throw new Error('ログインに失敗しました')
   }
 
   async getCurrentUser(token: string): Promise<User> {
