@@ -66,7 +66,7 @@ async def get_expenses(request: Request, db: Session = Depends(database.get_db))
     if auth_header and auth_header.startswith("Bearer "):
         try:
             token = auth_header.split(" ")[1]
-            current_user = auth.get_current_user(token, db)
+            current_user = auth.get_current_user_sync(token, db)
             expenses = db.query(database.Expense).all()
             return expenses
         except:
@@ -148,7 +148,7 @@ async def get_monthly_budgets(request: Request, db: Session = Depends(database.g
     if auth_header and auth_header.startswith("Bearer "):
         try:
             token = auth_header.split(" ")[1]
-            current_user = auth.get_current_user(token, db)
+            current_user = auth.get_current_user_sync(token, db)
             budgets = db.query(database.MonthlyBudget).all()
             return budgets
         except:
@@ -192,13 +192,20 @@ async def create_monthly_budget(budget: schemas.MonthlyBudgetCreate, request: Re
 @app.post("/api/import-data")
 async def import_data(
     import_data: schemas.DataImport, 
-    current_user: database.User = Depends(auth.get_current_user), 
+    request: Request,
     db: Session = Depends(database.get_db)
 ):
-    if current_user.is_readonly:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot import data")
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     
     try:
+        token = auth_header.split(" ")[1]
+        current_user = auth.get_current_user_sync(token, db)
+        
+        if current_user.is_readonly:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot import data")
+        
         imported_expenses = 0
         imported_budgets = 0
         
@@ -229,15 +236,26 @@ async def import_data(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Import failed: {str(e)}")
 
 @app.delete("/api/clear-data")
-async def clear_all_data(current_user: database.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
-    if current_user.is_readonly:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot clear data")
+async def clear_all_data(request: Request, db: Session = Depends(database.get_db)):
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     
-    deleted_expenses = db.query(database.Expense).filter(database.Expense.owner_id == current_user.id).delete()
-    deleted_budgets = db.query(database.MonthlyBudget).filter(database.MonthlyBudget.owner_id == current_user.id).delete()
-    
-    db.commit()
-    return {"message": f"Cleared {deleted_expenses} expenses and {deleted_budgets} budgets"}
+    try:
+        token = auth_header.split(" ")[1]
+        current_user = auth.get_current_user_sync(token, db)
+        
+        if current_user.is_readonly:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot clear data")
+        
+        deleted_expenses = db.query(database.Expense).filter(database.Expense.owner_id == current_user.id).delete()
+        deleted_budgets = db.query(database.MonthlyBudget).filter(database.MonthlyBudget.owner_id == current_user.id).delete()
+        
+        db.commit()
+        return {"message": f"Cleared {deleted_expenses} expenses and {deleted_budgets} budgets"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token")
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_interface():
