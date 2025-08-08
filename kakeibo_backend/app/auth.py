@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 import logging
+import traceback
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -17,9 +18,12 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 try:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    logger.info("Successfully initialized CryptContext with bcrypt")
 except Exception as e:
-    logger.error(f"Error initializing CryptContext: {e}")
+    logger.error(f"Error initializing CryptContext with bcrypt: {e}")
+    logger.error(traceback.format_exc())
     pwd_context = CryptContext(schemes=["plaintext"])
+    logger.info("Using plaintext fallback for password verification")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def verify_password(plain_password, hashed_password):
