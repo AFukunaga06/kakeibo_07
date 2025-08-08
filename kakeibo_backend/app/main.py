@@ -83,7 +83,7 @@ async def create_expense(expense: schemas.ExpenseCreate, request: Request, db: S
     
     try:
         token = auth_header.split(" ")[1]
-        current_user = auth.get_current_user(token, db)
+        current_user = auth.get_current_user_sync(token, db)
         if current_user.is_readonly:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot create expenses")
         
@@ -103,7 +103,7 @@ async def update_expense(expense_id: int, expense: schemas.ExpenseUpdate, reques
     
     try:
         token = auth_header.split(" ")[1]
-        current_user = auth.get_current_user(token, db)
+        current_user = auth.get_current_user_sync(token, db)
         if current_user.is_readonly:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot update expenses")
         
@@ -128,7 +128,7 @@ async def delete_expense(expense_id: int, request: Request, db: Session = Depend
     
     try:
         token = auth_header.split(" ")[1]
-        current_user = auth.get_current_user(token, db)
+        current_user = auth.get_current_user_sync(token, db)
         if current_user.is_readonly:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot delete expenses")
         
@@ -165,7 +165,7 @@ async def create_monthly_budget(budget: schemas.MonthlyBudgetCreate, request: Re
     
     try:
         token = auth_header.split(" ")[1]
-        current_user = auth.get_current_user(token, db)
+        current_user = auth.get_current_user_sync(token, db)
         if current_user.is_readonly:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot create budgets")
         
