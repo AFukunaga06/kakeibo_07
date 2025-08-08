@@ -83,17 +83,30 @@ async def create_expense(expense: schemas.ExpenseCreate, request: Request, db: S
     
     try:
         token = auth_header.split(" ")[1]
-        current_user = auth.get_current_user_sync(token, db)
-        if current_user.is_readonly:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot create expenses")
+        print(f"Token received: {token[:10]}...")  # Print first 10 chars of token for debugging
         
-        db_expense = database.Expense(**expense.dict(), owner_id=current_user.id)
-        db.add(db_expense)
-        db.commit()
-        db.refresh(db_expense)
-        return db_expense
+        try:
+            current_user = auth.get_current_user_sync(token, db)
+            print(f"User authenticated: {current_user.username}, readonly: {current_user.is_readonly}")
+            
+            if current_user.is_readonly:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot create expenses")
+            
+            db_expense = database.Expense(**expense.dict(), owner_id=current_user.id)
+            db.add(db_expense)
+            db.commit()
+            db.refresh(db_expense)
+            return db_expense
+        except Exception as e:
+            print(f"Authentication error: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid authentication token: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token")
+        print(f"General error: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Error processing request: {str(e)}")
 
 @app.put("/api/expenses/{expense_id}", response_model=schemas.Expense)
 async def update_expense(expense_id: int, expense: schemas.ExpenseUpdate, request: Request, db: Session = Depends(database.get_db)):
