@@ -76,44 +76,71 @@ async def get_expenses(request: Request, db: Session = Depends(database.get_db))
     return expenses
 
 @app.post("/api/expenses", response_model=schemas.Expense)
-async def create_expense(expense: schemas.ExpenseCreate, current_user: database.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
-    if current_user.is_readonly:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot create expenses")
+async def create_expense(expense: schemas.ExpenseCreate, request: Request, db: Session = Depends(database.get_db)):
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     
-    db_expense = database.Expense(**expense.dict(), owner_id=current_user.id)
-    db.add(db_expense)
-    db.commit()
-    db.refresh(db_expense)
-    return db_expense
+    try:
+        token = auth_header.split(" ")[1]
+        current_user = auth.get_current_user(token, db)
+        if current_user.is_readonly:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot create expenses")
+        
+        db_expense = database.Expense(**expense.dict(), owner_id=current_user.id)
+        db.add(db_expense)
+        db.commit()
+        db.refresh(db_expense)
+        return db_expense
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token")
 
 @app.put("/api/expenses/{expense_id}", response_model=schemas.Expense)
-async def update_expense(expense_id: int, expense: schemas.ExpenseUpdate, current_user: database.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
-    if current_user.is_readonly:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot update expenses")
+async def update_expense(expense_id: int, expense: schemas.ExpenseUpdate, request: Request, db: Session = Depends(database.get_db)):
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     
-    db_expense = db.query(database.Expense).filter(database.Expense.id == expense_id).first()
-    if not db_expense:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found")
-    
-    for key, value in expense.dict(exclude_unset=True).items():
-        setattr(db_expense, key, value)
-    
-    db.commit()
-    db.refresh(db_expense)
-    return db_expense
+    try:
+        token = auth_header.split(" ")[1]
+        current_user = auth.get_current_user(token, db)
+        if current_user.is_readonly:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot update expenses")
+        
+        db_expense = db.query(database.Expense).filter(database.Expense.id == expense_id).first()
+        if not db_expense:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found")
+        
+        for key, value in expense.dict(exclude_unset=True).items():
+            setattr(db_expense, key, value)
+        
+        db.commit()
+        db.refresh(db_expense)
+        return db_expense
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token")
 
 @app.delete("/api/expenses/{expense_id}")
-async def delete_expense(expense_id: int, current_user: database.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
-    if current_user.is_readonly:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot delete expenses")
+async def delete_expense(expense_id: int, request: Request, db: Session = Depends(database.get_db)):
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     
-    db_expense = db.query(database.Expense).filter(database.Expense.id == expense_id).first()
-    if not db_expense:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found")
-    
-    db.delete(db_expense)
-    db.commit()
-    return {"message": "Expense deleted successfully"}
+    try:
+        token = auth_header.split(" ")[1]
+        current_user = auth.get_current_user(token, db)
+        if current_user.is_readonly:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot delete expenses")
+        
+        db_expense = db.query(database.Expense).filter(database.Expense.id == expense_id).first()
+        if not db_expense:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found")
+        
+        db.delete(db_expense)
+        db.commit()
+        return {"message": "Expense deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token")
 
 @app.get("/api/monthly-budgets", response_model=List[schemas.MonthlyBudget])
 async def get_monthly_budgets(request: Request, db: Session = Depends(database.get_db)):
@@ -131,27 +158,36 @@ async def get_monthly_budgets(request: Request, db: Session = Depends(database.g
     return budgets
 
 @app.post("/api/monthly-budgets", response_model=schemas.MonthlyBudget)
-async def create_monthly_budget(budget: schemas.MonthlyBudgetCreate, current_user: database.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
-    if current_user.is_readonly:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot create budgets")
+async def create_monthly_budget(budget: schemas.MonthlyBudgetCreate, request: Request, db: Session = Depends(database.get_db)):
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     
-    existing_budget = db.query(database.MonthlyBudget).filter(
-        database.MonthlyBudget.year == budget.year,
-        database.MonthlyBudget.month == budget.month,
-        database.MonthlyBudget.owner_id == current_user.id
-    ).first()
-    
-    if existing_budget:
-        existing_budget.budget_amount = budget.budget_amount
+    try:
+        token = auth_header.split(" ")[1]
+        current_user = auth.get_current_user(token, db)
+        if current_user.is_readonly:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only user cannot create budgets")
+        
+        existing_budget = db.query(database.MonthlyBudget).filter(
+            database.MonthlyBudget.year == budget.year,
+            database.MonthlyBudget.month == budget.month,
+            database.MonthlyBudget.owner_id == current_user.id
+        ).first()
+        
+        if existing_budget:
+            existing_budget.budget_amount = budget.budget_amount
+            db.commit()
+            db.refresh(existing_budget)
+            return existing_budget
+        
+        db_budget = database.MonthlyBudget(**budget.dict(), owner_id=current_user.id)
+        db.add(db_budget)
         db.commit()
-        db.refresh(existing_budget)
-        return existing_budget
-    
-    db_budget = database.MonthlyBudget(**budget.dict(), owner_id=current_user.id)
-    db.add(db_budget)
-    db.commit()
-    db.refresh(db_budget)
-    return db_budget
+        db.refresh(db_budget)
+        return db_budget
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token")
 
 @app.post("/api/import-data")
 async def import_data(
