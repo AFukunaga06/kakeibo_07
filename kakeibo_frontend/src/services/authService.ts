@@ -24,20 +24,31 @@ class AuthService {
   }
 
   async getCurrentUser(token: string): Promise<User> {
-    const response = await fetch(`${API_URL}/api/expenses`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error('認証に失敗しました')
+    if (token === 'readonly-token') {
+      return {
+        username: 'readonly',
+        is_readonly: true
+      }
     }
 
-    const username = this.getUsernameFromToken(token)
-    return {
-      username,
-      is_readonly: username === 'readonly'
+    try {
+      const response = await fetch(`${API_URL}/api/expenses`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('認証に失敗しました')
+      }
+
+      const username = this.getUsernameFromToken(token)
+      return {
+        username,
+        is_readonly: username === 'readonly'
+      }
+    } catch (error) {
+      throw new Error('認証に失敗しました')
     }
   }
 

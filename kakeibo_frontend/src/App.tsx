@@ -32,6 +32,13 @@ function App() {
       setCurrentPage('home')
     }
 
+    const urlParams = new URLSearchParams(window.location.search)
+    const adminToken = urlParams.get('admin_token')
+    if (adminToken) {
+      localStorage.setItem('token', adminToken)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+
     const token = localStorage.getItem('token')
     if (token) {
       authService.getCurrentUser(token)

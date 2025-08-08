@@ -69,7 +69,7 @@ export function LoginForm({ onLogin }: LoginFormProps) {
         <div className="mt-6 p-4 bg-gray-50 rounded-lg text-center">
           <p className="text-sm text-gray-600 mb-2">編集機能をご利用の場合は</p>
           <a 
-            href="/admin" 
+            href="https://app-igjwiuuu.fly.dev/admin" 
             className="text-blue-600 hover:text-blue-800 font-medium"
           >
             管理者ページへ

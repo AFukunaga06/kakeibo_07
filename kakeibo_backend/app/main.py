@@ -241,7 +241,7 @@ async def admin_interface():
         <div id="adminPanel" class="admin-panel hidden">
             <h2>管理者機能</h2>
             <p>編集機能付きの家計簿アプリにアクセスできます。</p>
-            <button onclick="window.open('/', '_blank')">家計簿アプリを開く（編集モード）</button>
+            <button onclick="openMainApp()">家計簿アプリを開く（編集モード）</button>
             <br><br>
             <button onclick="logout()">ログアウト</button>
         </div>
@@ -270,6 +270,13 @@ async def admin_interface():
                     });
                 } else {
                     errorDiv.textContent = 'パスワードが正しくありません';
+                }
+            }
+            
+            function openMainApp() {
+                const token = localStorage.getItem('admin_token');
+                if (token) {
+                    window.location.href = 'https://kakeibo-budget-app-yxnr5kpo.devinapps.com?admin_token=' + encodeURIComponent(token);
                 }
             }
             
